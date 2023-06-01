@@ -39,6 +39,27 @@ export abstract class Initializer extends Base {
   };
 
   static loadAirplaneModel = () => {
+   const directionalLight = new THREE.DirectionalLight(0xffffff,100);
+   directionalLight.position.set(0,1,0);
+   directionalLight.castShadow = true; 
+   this.scene.add(directionalLight);
+
+   const light = new THREE.PointLight(0xc4c4c4,10);
+   light.position.set(0,300,500);
+   this.scene.add(light);
+
+   const light2 = new THREE.PointLight(0xc4c4c4,10);
+   light2.position.set(500,100,0);
+   this.scene.add(light2);
+
+   const light3 = new THREE.PointLight(0xc4c4c4,10);
+   light3.position.set(0,100,-500);
+   this.scene.add(light3);
+
+   const light4 = new THREE.PointLight(0xc4c4c4,10);
+   light4.position.set(-500,300,0);
+   this.scene.add(light4);
+
     const loader = new GLTFLoader();
     loader.load('../../assets/models/airplane/scene.gltf', (gltf) => {
       this.airplane = gltf.scene.children[0];
