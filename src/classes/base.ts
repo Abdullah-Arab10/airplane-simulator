@@ -6,6 +6,7 @@ export abstract class Base {
   static renderer = new THREE.WebGLRenderer({
     canvas: document.getElementById('app') as HTMLCanvasElement,
   });
+
   static scene = new THREE.Scene();
 
   static mainCameraInitializer = () => {
@@ -16,9 +17,14 @@ export abstract class Base {
       0.1, // near plane
       100000 // far plane
     );
-    mainCamera.position.set(45, 200, 0);
+    mainCamera.position.set(0, 200, 0);
+    mainCamera.rotation.set(0, 160, 0);
+    //  mainCamera.position.set(0, 0, 0);
+
     return mainCamera;
   };
   static mainCamera = this.mainCameraInitializer();
   static orbit = new OrbitControls(this.mainCamera, this.renderer.domElement);
+  // Add keyboard input handling
+  // Add event listener on keypress
 }
