@@ -11,7 +11,6 @@ export abstract class Initializer extends Base {
   }
 
   static airplane;
-  static sum = 1;
 
   public static sceneInitializer = () => {
     window.addEventListener('resize', this.windowInitializer, false);
