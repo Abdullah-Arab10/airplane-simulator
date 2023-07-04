@@ -1,87 +1,153 @@
 import * as THREE from 'three';
 import { Base } from './base';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import dat from 'dat.gui';
+import { Lighter } from './light';
+import { Physics } from './physics';
+import { Sound } from './sound';
 export abstract class Initializer extends Base {
   constructor() {
     super();
   }
+
   static airplane;
-  static sum = 1;
 
   public static sceneInitializer = () => {
-    this.renderer.setSize(this.width, this.height);
+    window.addEventListener('resize', this.windowInitializer, false);
+    this.windowInitializer();
     this.backgroundInitializer();
     this.loadAirplaneModel();
+    this.panel();
+
     this.renderer.render(this.scene, this.mainCamera);
     //helpers
     const axesHelper = new THREE.AxesHelper(5000);
     this.scene.add(axesHelper);
     const gridHelper = new THREE.GridHelper(5000);
-    // this.scene.add(gridHelper);
   };
-
-  public static backgroundInitializer = () => {
+  public static windowInitializer = () => {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.renderer.setSize(this.width, this.height);
+  };
+  static geometry = new THREE.SphereGeometry(50000, 600, 400);
+  public static backgroundInitializer = async () => {
     const loader = new THREE.TextureLoader();
-    const texture = loader.load('../../assets/images/back.jpg');
-    const geometry = new THREE.SphereGeometry(5000, 600, 400);
-    geometry.scale(-1, 1, 1);
+    const texture = await loader.load('../../assets/images/back.jpg');
+    this.geometry.scale(-1, 1, 1);
     const material = new THREE.MeshBasicMaterial({
       map: texture,
     });
-    const sphere = new THREE.Mesh(geometry, material);
+    const sphere = new THREE.Mesh(this.geometry, material);
     this.scene.add(sphere);
-    /*     const loader = new RGBELoader(;);
-    loader.load('../../assets/images/world.hdr', (texture) => {
-      texture.mapping = THREE.EquirectangularRefractionMapping;
-      this.scene.background = texture;
-      this.scene.environment = texture;
-    }); */
   };
 
-  static loadAirplaneModel = () => {
-   const directionalLight = new THREE.DirectionalLight(0xffffff,100);
-   directionalLight.position.set(0,1,0);
-   directionalLight.castShadow = true; 
-   this.scene.add(directionalLight);
+  static loadAirplaneModel = async () => {
+    const l = new THREE.LoadingManager();
 
-   const light = new THREE.PointLight(0xc4c4c4,10);
-   light.position.set(0,300,500);
-   this.scene.add(light);
+    const loader = new GLTFLoader(l);
+    await Sound.landingMusic(true);
+    Sound.landingMusic(true);
+    await loader
+      .loadAsync('../../assets/models/airplane/scene.gltf', (progress) => {})
+      .then((gltf) => {
+        this.airplane = gltf.scene.children[0];
+        this.airplane.scale.set(100, 150, 180);
+        setInterval(() => {
+          Sound.progressBar.value += 10;
+        }, 2500);
+        setTimeout(() => {
+          Sound.gameMusic();
+        }, 25000);
 
-   const light2 = new THREE.PointLight(0xc4c4c4,10);
-   light2.position.set(500,100,0);
-   this.scene.add(light2);
+        this.scene.add(gltf.scene);
+      });
+  };
 
-   const light3 = new THREE.PointLight(0xc4c4c4,10);
-   light3.position.set(0,100,-500);
-   this.scene.add(light3);
+  static changeOverTime = () => {
+    Physics.applyForce();
 
-   const light4 = new THREE.PointLight(0xc4c4c4,10);
-   light4.position.set(-500,300,0);
-   this.scene.add(light4);
+    const p = Physics.position;
+    const angle = Physics.angle;
+    if (p.y > this.airplane.position.y) {
+      this.airplane.position.y += 0.1;
+      if (this.airplane.rotation.x >= 4.75) {
+        this.airplane.rotation.x -= 0.0005;
+      }
+      //   this.airplane.rotation.x = 4.5;
+    }
+    if (p.y < this.airplane.position.y) {
+      this.airplane.position.y += -0.1;
+      if (this.airplane.rotation.x < 5) {
+        this.airplane.rotation.x += 0.0005;
+      }
+    }
 
-    const loader = new GLTFLoader();
-    loader.load('../../assets/models/airplane/scene.gltf', (gltf) => {
-      this.airplane = gltf.scene.children[0];
-      this.airplane.scale.set(100, 100, 100);
-      this.airplane.position.set(0, 0, -5000);
-
-      this.scene.add(gltf.scene);
-      setInterval(() => {
-        //console.log(this.airplane.position);
-        // this.mainCamera.position.y = this.sum;
-        this.airplane.position.z = this.sum;
-        console.log(this.mainCamera.rotation);
-        this.sum += 0.1;
-      }, 10);
-    });
+    if (Math.round(p.y) == Math.round(this.airplane.position.y)) {
+      this.airplane.rotation.x = 4.75;
+    }
+    this.airplane.position.z = p.z;
   };
 
   public static animate = () => {
     requestAnimationFrame(this.animate);
-
-    // required if controls.enableDamping or controls.autoRotate are set to true
+    if (this.airplane && Sound.start) {
+      this.changeOverTime();
+      Lighter.initLight();
+      this.orbit.target.copy(this.airplane.position);
+    }
     this.orbit.update();
+
     this.renderer.render(this.scene, this.mainCamera);
+  };
+
+  a = 10;
+  static panel = () => {
+    const changeGravity = (val) => {
+      Physics.changeGravity(val);
+    };
+    const changeThrust = (val) => {
+      Physics.changeThrust(val);
+    };
+    const changeMass = (val) => {
+      Physics.changeMass(val);
+    };
+    const changeWind = (val) => {
+      this.airplane.rotation.x = val;
+    };
+    const changeAirSpeed = (val) => {
+      Physics.changeAirSpeed(val);
+    };
+    const gui = new dat.GUI();
+    gui
+      .add(Physics.options, 'gravity')
+      .name('gravity')
+      .onChange(function (val): void {
+        changeGravity(val);
+      });
+    gui
+      .add(Physics.options, 'thrust')
+      .name('thrust')
+      .onChange(function (val): void {
+        changeThrust(val);
+      });
+    gui
+      .add(Physics.options, 'mass')
+      .name('mass')
+      .onChange(function (val): void {
+        changeMass(val);
+      });
+    gui
+      .add(Physics.options, 'wind')
+      .name('wind')
+      .onChange(function (val): void {
+        changeWind(val);
+      });
+    gui
+      .add(Physics.options, 'airspeed')
+      .name('air speed')
+      .onChange(function (val): void {
+        changeAirSpeed(val);
+      });
   };
 }

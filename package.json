@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "three": "^0.152.2",
-    "three-gltf-loader": "^1.111.0"
+    "three-gltf-loader": "^1.111.0",
+    "threex": "^1.0.0"
   }
 }
