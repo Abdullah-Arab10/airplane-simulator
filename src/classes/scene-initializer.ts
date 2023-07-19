@@ -12,12 +12,17 @@ export abstract class Initializer extends Base {
 
   static airplane;
 
+  
+
   public static sceneInitializer = () => {
     window.addEventListener('resize', this.windowInitializer, false);
     this.windowInitializer();
     this.backgroundInitializer();
     this.loadAirplaneModel();
     this.panel();
+    //this.createRectangle(2000, 2000, '../../assets/images/grass.jpg');
+    const modelScale = { x: 300, y: 300, z: 300 };
+    this.createRectangleWithModel('../../assets/models/airport/scene.gltf', { x: 0, y: -35000, z: -35000 } , modelScale);
 
     this.renderer.render(this.scene, this.mainCamera);
     //helpers
@@ -150,4 +155,32 @@ export abstract class Initializer extends Base {
         changeAirSpeed(val);
       });
   };
+  
+  static createRectangle = (width, height, textureUrl) =>{
+    const geometry = new THREE.PlaneGeometry(width, height);
+    const textureLoader = new THREE.TextureLoader();
+    const texture = textureLoader.load(textureUrl);
+    const material = new THREE.MeshBasicMaterial({ map: texture });
+    const rectangle = new THREE.Mesh(geometry, material);
+    rectangle.position.set(0, -3000, 0);
+    rectangle.rotation.x = Math.PI / -2;
+    this.scene.add(rectangle);
+    return rectangle;
+  };
+
+  static createRectangleWithModel = (modelUrl, modelOffset, modelScale) =>{
+    const container = new THREE.Object3D();
+    /*const rectangle = Initializer.createRectangle(width, height, textureUrl);
+    container.add(rectangle);*/
+    const loader = new GLTFLoader();
+    loader.load(modelUrl, (gltf) => {
+      const model = gltf.scene;
+      container.add(model);
+      model.position.set(modelOffset.x, modelOffset.y, modelOffset.z);
+      model.scale.set(modelScale.x, modelScale.y, modelScale.z);
+    });
+    this.scene.add(container);
+    return container;
+  };
+
 }
