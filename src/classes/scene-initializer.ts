@@ -1,34 +1,28 @@
 import * as THREE from 'three';
 import { Base } from './base';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import dat from 'dat.gui';
 import { Lighter } from './light';
 import { Physics } from './physics';
 import { Sound } from './sound';
+import { Model } from './models';
 export abstract class Initializer extends Base {
   constructor() {
     super();
   }
 
-  static airplane;
-
-  
-
+  public static testBackground = () => {};
   public static sceneInitializer = () => {
     window.addEventListener('resize', this.windowInitializer, false);
     this.windowInitializer();
+    this.orbitSettings();
     this.backgroundInitializer();
-    this.loadAirplaneModel();
+    Model.loadAirplaneModel();
+    Model.loadRunwayModel();
+    Model.loadTreeModel();
+    Model.loadCloudModel();
     this.panel();
-    //this.createRectangle(2000, 2000, '../../assets/images/grass.jpg');
-    const modelScale = { x: 300, y: 300, z: 300 };
-    this.createRectangleWithModel('../../assets/models/airport/scene.gltf', { x: 0, y: -35000, z: -35000 } , modelScale);
 
     this.renderer.render(this.scene, this.mainCamera);
-    //helpers
-    const axesHelper = new THREE.AxesHelper(5000);
-    this.scene.add(axesHelper);
-    const gridHelper = new THREE.GridHelper(5000);
   };
   public static windowInitializer = () => {
     this.width = window.innerWidth;
@@ -36,77 +30,86 @@ export abstract class Initializer extends Base {
     this.renderer.setSize(this.width, this.height);
   };
   static geometry = new THREE.SphereGeometry(50000, 600, 400);
+  static sphere;
   public static backgroundInitializer = async () => {
-    const loader = new THREE.TextureLoader();
-    const texture = await loader.load('../../assets/images/back.jpg');
     this.geometry.scale(-1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({
-      map: texture,
-    });
-    const sphere = new THREE.Mesh(this.geometry, material);
-    this.scene.add(sphere);
-  };
 
-  static loadAirplaneModel = async () => {
-    const l = new THREE.LoadingManager();
+    let materialArray = [];
+    let texture_ft = new THREE.TextureLoader().load(
+      '../../assets/world/posz.jpg'
+    );
+    let texture_bk = new THREE.TextureLoader().load(
+      '../../assets/world/negz.jpg'
+    );
+    let texture_up = new THREE.TextureLoader().load(
+      '../../assets/world/posy.jpg'
+    );
+    let texture_dn = new THREE.TextureLoader().load(
+      '../../assets/world/negy.jpg'
+    );
+    let texture_rt = new THREE.TextureLoader().load(
+      '../../assets/world/negx.jpg'
+    );
+    let texture_lf = new THREE.TextureLoader().load(
+      '../../assets/world/posx.jpg'
+    );
 
-    const loader = new GLTFLoader(l);
-    await Sound.landingMusic(true);
-    Sound.landingMusic(true);
-    await loader
-      .loadAsync('../../assets/models/airplane/scene.gltf', (progress) => {})
-      .then((gltf) => {
-        this.airplane = gltf.scene.children[0];
-        this.airplane.scale.set(100, 150, 180);
-        setInterval(() => {
-          Sound.progressBar.value += 10;
-        }, 2500);
-        setTimeout(() => {
-          Sound.gameMusic();
-        }, 25000);
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_ft }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_bk }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_up }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_dn }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_rt }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_lf }));
 
-        this.scene.add(gltf.scene);
-      });
+    for (let i = 0; i < 6; i++) materialArray[i].side = THREE.BackSide;
+
+    let skyboxGeo = new THREE.BoxGeometry(80000, 80000, 80000);
+    let skybox = new THREE.Mesh(skyboxGeo, materialArray);
+    skybox.position.set(0, 0, 0);
+
+    this.scene.add(skybox);
   };
 
   static changeOverTime = () => {
     Physics.applyForce();
 
     const p = Physics.position;
-    const angle = Physics.angle;
-    if (p.y > this.airplane.position.y) {
-      this.airplane.position.y += 0.1;
-      if (this.airplane.rotation.x >= 4.75) {
-        this.airplane.rotation.x -= 0.0005;
-      }
-      //   this.airplane.rotation.x = 4.5;
-    }
-    if (p.y < this.airplane.position.y) {
-      this.airplane.position.y += -0.1;
-      if (this.airplane.rotation.x < 5) {
-        this.airplane.rotation.x += 0.0005;
+
+    Model.airplane.position.y += Physics.accForPos.y;
+
+    if (Physics.accForPos.y > 0) {
+      if (Model.airplane.rotation.x > 4.5) {
+        Model.airplane.rotation.x -= 0.0005;
       }
     }
 
-    if (Math.round(p.y) == Math.round(this.airplane.position.y)) {
-      this.airplane.rotation.x = 4.75;
+    if (Physics.accForPos.y < 0) {
+      if (Model.airplane.rotation.x <= 5) {
+        Model.airplane.rotation.x += 0.0005;
+      }
     }
-    this.airplane.position.z = p.z;
+
+    if (Math.round(p.y) == Math.round(Model.airplane.position.y)) {
+      Model.airplane.rotation.x = 4.8;
+    }
+
+    Model.airplane.position.z = p.z;
   };
 
   public static animate = () => {
     requestAnimationFrame(this.animate);
-    if (this.airplane && Sound.start) {
+    if (Model.airplane && Sound.start) {
       this.changeOverTime();
       Lighter.initLight();
-      this.orbit.target.copy(this.airplane.position);
+      this.orbit.target.copy(Model.airplane.position);
+      this.orbit.enableZoom = true;
     }
+
     this.orbit.update();
 
     this.renderer.render(this.scene, this.mainCamera);
   };
 
-  a = 10;
   static panel = () => {
     const changeGravity = (val) => {
       Physics.changeGravity(val);
@@ -117,12 +120,7 @@ export abstract class Initializer extends Base {
     const changeMass = (val) => {
       Physics.changeMass(val);
     };
-    const changeWind = (val) => {
-      this.airplane.rotation.x = val;
-    };
-    const changeAirSpeed = (val) => {
-      Physics.changeAirSpeed(val);
-    };
+
     const gui = new dat.GUI();
     gui
       .add(Physics.options, 'gravity')
@@ -142,45 +140,5 @@ export abstract class Initializer extends Base {
       .onChange(function (val): void {
         changeMass(val);
       });
-    gui
-      .add(Physics.options, 'wind')
-      .name('wind')
-      .onChange(function (val): void {
-        changeWind(val);
-      });
-    gui
-      .add(Physics.options, 'airspeed')
-      .name('air speed')
-      .onChange(function (val): void {
-        changeAirSpeed(val);
-      });
   };
-  
-  static createRectangle = (width, height, textureUrl) =>{
-    const geometry = new THREE.PlaneGeometry(width, height);
-    const textureLoader = new THREE.TextureLoader();
-    const texture = textureLoader.load(textureUrl);
-    const material = new THREE.MeshBasicMaterial({ map: texture });
-    const rectangle = new THREE.Mesh(geometry, material);
-    rectangle.position.set(0, -3000, 0);
-    rectangle.rotation.x = Math.PI / -2;
-    this.scene.add(rectangle);
-    return rectangle;
-  };
-
-  static createRectangleWithModel = (modelUrl, modelOffset, modelScale) =>{
-    const container = new THREE.Object3D();
-    /*const rectangle = Initializer.createRectangle(width, height, textureUrl);
-    container.add(rectangle);*/
-    const loader = new GLTFLoader();
-    loader.load(modelUrl, (gltf) => {
-      const model = gltf.scene;
-      container.add(model);
-      model.position.set(modelOffset.x, modelOffset.y, modelOffset.z);
-      model.scale.set(modelScale.x, modelScale.y, modelScale.z);
-    });
-    this.scene.add(container);
-    return container;
-  };
-
 }
