@@ -23,13 +23,14 @@ export abstract class Sound extends Base {
     this.gameMusicElement.play();
     this.landingPage.style.display = 'none';
     this.start = true;
-    this.gameMusicElement.volume = 0.3;
+    this.gameMusicElement.volume = 0.1;
   };
 
   static landingMusic = (start) => {
     const landingMusicLoader = new Audio('../../assets/sounds/landing.mp3');
     landingMusicLoader.addEventListener('canplaythrough', () => {
       this.landingMusicElement.src = landingMusicLoader.src;
+
       start === true
         ? this.landingMusicElement.play()
         : this.landingMusicElement.pause();
