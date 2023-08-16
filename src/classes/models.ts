@@ -74,7 +74,7 @@ export abstract class Model extends Base {
       .loadAsync('../../assets/models/airplane/scene.gltf', (progress) => {})
       .then((gltf) => {
         this.airplane = gltf.scene.children[0];
-        this.airplane.scale.set(40, 50, 50);
+        this.airplane.scale.set(40, 50, 60);
         const p = Physics.position;
         this.airplane.position.set(p.x, p.y, p.z);
         this.airplane.rotation.x = 4.8;
