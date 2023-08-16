@@ -23,7 +23,10 @@ export abstract class Physics extends Base {
   static position = new THREE.Vector3(0, -39525, -24000);
   static accForPos = new THREE.Vector3(0, 0, 0);
   static acceleration = new THREE.Vector3(0, 0, 0);
-
+  static output = {
+    'velocity on z': 0,
+    'acceleration on y': 0,
+  };
   static initForces = () => {
     this.velocity.add(this.acceleration);
     let v = this.velocity;
@@ -59,15 +62,14 @@ export abstract class Physics extends Base {
     let liftForce =
       0.5 * airDensity * wingArea * wingLiftCoefficient * Math.pow(speed, 2);
 
-    let weightForce = this.options.mass * this.options.gravity;
-
-    const netForce = liftForce - weightForce;
+    let weightForce = Math.round(this.options.mass * this.options.gravity);
+    const netForce = Math.round(liftForce - weightForce);
 
     const acc = netForce / this.options.mass;
+    // console.log(weightForce, liftForce, netForce, acc);
 
     this.acceleration.y = acc;
     this.accForPos.y = acc / 20;
-
     this.initForces();
   };
 
@@ -82,9 +84,9 @@ export abstract class Physics extends Base {
     const dragForce =
       0.5 * dragCoefficient * airDensity * referenceArea * Math.pow(speed, 2);
     const netForce = this.options.thrust - dragForce;
-
     const acceleration = netForce / this.options.mass;
     this.acceleration.z = acceleration;
+    this.accForPos.z = acceleration;
 
     this.initForces();
   };

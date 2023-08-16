@@ -9,7 +9,8 @@ export abstract class Initializer extends Base {
   constructor() {
     super();
   }
-
+  static gui = new dat.GUI();
+  static outputValues = this.gui.addFolder('output');
   public static testBackground = () => {};
   public static sceneInitializer = () => {
     window.addEventListener('resize', this.windowInitializer, false);
@@ -76,7 +77,8 @@ export abstract class Initializer extends Base {
     const p = Physics.position;
 
     Model.airplane.position.y += Physics.accForPos.y;
-
+    this.outputValues.__controllers[0].setValue(Physics.velocity.z);
+    this.outputValues.__controllers[1].setValue(Physics.accForPos.y * 20);
     if (Physics.accForPos.y > 0) {
       if (Model.airplane.rotation.x > 4.5) {
         Model.airplane.rotation.x -= 0.0005;
@@ -121,24 +123,27 @@ export abstract class Initializer extends Base {
       Physics.changeMass(val);
     };
 
-    const gui = new dat.GUI();
-    gui
+    this.gui
       .add(Physics.options, 'gravity')
       .name('gravity')
       .onChange(function (val): void {
         changeGravity(val);
       });
-    gui
+    this.gui
       .add(Physics.options, 'thrust')
       .name('thrust')
       .onChange(function (val): void {
         changeThrust(val);
       });
-    gui
+    this.gui
       .add(Physics.options, 'mass')
       .name('mass')
       .onChange(function (val): void {
         changeMass(val);
       });
+
+    this.outputValues.add(Physics.output, 'velocity on z');
+    this.outputValues.add(Physics.output, 'acceleration on y');
+    this.outputValues.open();
   };
 }
